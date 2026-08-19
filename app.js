@@ -1,6 +1,245 @@
-const KEY='ai-card-v021-data';let cards=JSON.parse(localStorage.getItem(KEY)||'[]'),page='home',stream=null;const $=s=>document.querySelector(s),main=$('#main'),modal=$('#modal');const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));const save=()=>localStorage.setItem(KEY,JSON.stringify(cards));const initial=c=>(c.name||'?').trim()[0]||'?';
-function row(c){return `<button class="card" data-id="${c.id}"><div class="avatar">${esc(initial(c))}</div><div class="cm"><div class="cn">${esc(c.name||'未命名')} ${c.favorite?'★':''}</div><div class="co">${esc(c.company||'未填寫公司')}</div><div class="job">${esc(c.jobTitle||'')}</div></div><div class="arrow">›</div></button>`}function bind(){document.querySelectorAll('[data-id]').forEach(x=>x.onclick=()=>detail(x.dataset.id))}function empty(){return `<div class="empty">📇<p>還沒有名片</p><button class="secondary" onclick="openScanner()">掃描第一張名片</button></div>`}
-function render(){if(page==='home')home();else if(page==='cards')cardsPage();else if(page==='cats')cats();else settings();document.querySelectorAll('nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page))}function home(){main.innerHTML=`<div class="search">🔍 <input id="q" placeholder="搜尋姓名、公司、電話、Email…"></div><button class="hero" id="scan"><div class="cam">📷</div><h2>拍攝名片，AI 自動辨識</h2><p>相機／相簿 → OCR → 自動填入</p></button><div class="stats"><div class="stat"><div class="num">${cards.length}</div><div class="muted">全部名片</div></div><div class="stat"><div class="num">${cards.filter(x=>x.favorite).length}</div><div class="muted">我的最愛</div></div></div><div class="title"><h2>最近新增</h2></div><div id="list">${cards.slice().reverse().slice(0,8).map(row).join('')||empty()}</div>`;$('#scan').onclick=openScanner;$('#q').oninput=e=>filter(e.target.value);bind()}function filter(q){q=q.toLowerCase();let f=cards.filter(c=>Object.values(c).join(' ').toLowerCase().includes(q));$('#list').innerHTML=f.map(row).join('')||empty();bind()}function cardsPage(){main.innerHTML=`<div class="search">🔍 <input id="q" placeholder="搜尋姓名、公司、電話、Email…"></div><div class="title"><h2>我的名片</h2><span class="muted">${cards.length} 張</span></div><div id="list">${cards.map(row).join('')||empty()}</div>`;$('#q').oninput=e=>filter(e.target.value);bind()}function cats(){let ns=['我的最愛','客戶','供應商','科技業','金融','飯店','旅遊','展覽','未分類'];main.innerHTML='<div class="title"><h2>分類</h2></div>'+ns.map(n=>`<button class="cat" data-cat="${n}">🏷️ <b>${n}</b><span class="count">${n==='我的最愛'?cards.filter(x=>x.favorite).length:cards.filter(x=>x.category===n).length}</span>›</button>`).join('');document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{let n=b.dataset.cat,f=n==='我的最愛'?cards.filter(x=>x.favorite):cards.filter(x=>x.category===n);main.innerHTML=`<div class="title"><h2>${n}</h2></div>${f.map(row).join('')||empty()}`;bind()})}function settings(){main.innerHTML=`<div class="title"><h2>設定</h2></div><div class="panel" style="padding:15px"><p>V0.2.1 診斷</p><div>HTTPS：<b>${location.protocol==='https:'?'✓':'✕'}</b></div><br><div>相機 API：<b>${navigator.mediaDevices?.getUserMedia?'✓':'✕'}</b></div><br><button class="secondary" onclick="exportData()">匯出 JSON 備份</button><br><br><button class="secondary" onclick="importData()">匯入 JSON 備份</button></div>`}
-async function openScanner(){modal.innerHTML=`<div class="modalbg"><div class="modalbox"><div class="mh"><h2>📷 掃描名片</h2><button class="close" id="x">✕</button></div><div id="diag"></div><div id="cameraArea"></div><div class="notice">若即時相機無法啟動，請使用下方「從照片選取／拍照」。</div><input id="file" type="file" accept="image/*" capture="environment" hidden><button class="secondary" id="pick">🖼️ 從照片選取／拍照</button></div></div>`;$('#x').onclick=closeModal;$('#pick').onclick=()=>$('#file').click();$('#file').onchange=e=>{if(e.target.files?.[0])processImage(URL.createObjectURL(e.target.files[0]))};startCamera()}async function startCamera(){let d=$('#diag'),a=$('#cameraArea');if(location.protocol!=='https:'&&location.hostname!=='localhost'){d.innerHTML='<div class="notice error">目前不是 HTTPS，Safari 不允許網頁相機。請用 GitHub Pages 的 https:// 網址。</div>';return}if(!navigator.mediaDevices?.getUserMedia){d.innerHTML='<div class="notice error">此瀏覽器沒有可用的相機 API。</div>';return}a.innerHTML='<div class="camera"><video id="video" autoplay muted playsinline></video><div class="guide"></div></div><button class="shutter" id="shutter">●</button>';try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});let v=$('#video');v.srcObject=stream;await v.play();$('#shutter').onclick=capture}catch(e){d.innerHTML=`<div class="notice error">相機啟動失敗：${esc(e.name||'UnknownError')}。請改用「從照片選取／拍照」。</div>`;a.innerHTML=''}}function capture(){let v=$('#video'),c=document.createElement('canvas');c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext('2d').drawImage(v,0,0,c.width,c.height);let src=c.toDataURL('image/jpeg',.9);closeModal();processImage(src)}function closeModal(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}modal.innerHTML=''}
-async function processImage(src){modal.innerHTML=`<div class="modalbg"><div class="modalbox"><h2>🤖 AI OCR 辨識中</h2><img class="preview" src="${src}"><div id="status" class="notice">載入 OCR…</div></div></div>`;try{if(!window.Tesseract){let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';await new Promise((ok,no)=>{s.onload=ok;s.onerror=no;document.head.appendChild(s)})}let w=await Tesseract.createWorker('eng+chi_tra',1,{logger:m=>{if($('#status'))$('#status').textContent=`${m.status||'辨識中'} ${Math.round((m.progress||0)*100)}%`}});let r=await w.recognize(src);await w.terminate();showResult(src,r.data.text||'')}catch(e){showResult(src,'')}}function parse(t){let l=t.split(/\n+/).map(x=>x.trim()).filter(Boolean),a=l.join(' '),email=(a.match(/[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}/)||[])[0]||'',phone=(a.match(/(?:09\d{2}[- ]?\d{3}[- ]?\d{3}|0\d[- ]?\d{3,4}[- ]?\d{3,4})/)||[])[0]||'',name=l.find(x=>/^[\u4e00-\u9fff]{2,4}$/.test(x))||'',company=l.find(x=>/(有限公司|股份有限公司|公司|科技|電子|銀行|集團|Co\.|Ltd|Inc)/i.test(x))||'',job=l.find(x=>/(經理|副理|主任|總監|董事|專員|工程師|顧問|業務|Manager|Director|Engineer)/i.test(x))||'';return{name,company,jobTitle:job,mobile:/09\d{2}/.test(phone)?phone:'',phone:/09\d{2}/.test(phone)?'':phone,email,address:'',category:'未分類',note:''}}function input(label,k,v){return `<div class="field ${['name','company','address','note'].includes(k)?'full':''}"><label>${label}</label>${k==='note'?`<textarea id="f_${k}">${esc(v)}</textarea>`:`<input id="f_${k}" value="${esc(v)}">`}</div>`}function showResult(src,text){let p=parse(text);modal.innerHTML=`<div class="modalbg"><div class="modalbox"><div class="mh"><h2>🤖 辨識結果</h2><button class="close" onclick="closeModal()">✕</button></div><img class="preview" src="${src}"><div class="notice">請確認 AI/OCR 結果後再儲存。</div><div class="grid">${input('姓名','name',p.name)}${input('公司','company',p.company)}${input('職稱','jobTitle',p.jobTitle)}${input('手機','mobile',p.mobile)}${input('電話','phone',p.phone)}${input('Email','email',p.email)}${input('地址','address',p.address)}${input('分類','category',p.category)}${input('備註','note',p.note)}</div><button class="primary" id="save">✓ 確認並儲存</button><button class="secondary" style="margin-top:10px" onclick="openScanner()">重新拍攝</button></div></div>`;$('#save').onclick=()=>{let g=k=>$('#f_'+k)?.value.trim()||'';if(!g('name'))return alert('請補上姓名');cards.push({id:Date.now().toString(),name:g('name'),company:g('company'),jobTitle:g('jobTitle'),mobile:g('mobile'),phone:g('phone'),email:g('email'),address:g('address'),category:g('category')||'未分類',note:g('note'),favorite:false,photo:src,createdAt:new Date().toISOString()});save();closeModal();page='cards';render()}}function detail(id){let c=cards.find(x=>x.id===id);modal.innerHTML=`<div class="modalbg"><div class="modalbox"><div class="mh"><h2>名片</h2><button class="close" onclick="closeModal()">✕</button></div><div style="text-align:center">${c.photo?`<img class="preview" src="${c.photo}">`:`<div class="avatar" style="margin:15px auto">${esc(initial(c))}</div>`}<h2>${esc(c.name)} ${c.favorite?'★':''}</h2><p>${esc(c.company)}<br>${esc(c.jobTitle)}</p></div><div class="actions"><button class="action" onclick="location.href='tel:${esc(c.mobile||c.phone)}'">📞<span>打電話</span></button><button class="action" onclick="location.href='mailto:${esc(c.email)}'">✉️<span>Email</span></button><button class="action" onclick="location.href='https://maps.apple.com/?address='+encodeURIComponent('${esc(c.address||'')}')">🗺️<span>地圖</span></button></div><button class="primary" id="fav">${c.favorite?'☆ 取消最愛':'★ 加入最愛'}</button><button class="primary" id="del" style="background:#fee2e2;color:#b91c1c">🗑️ 刪除</button></div></div>`;$('#fav').onclick=()=>{c.favorite=!c.favorite;save();closeModal();render()};$('#del').onclick=()=>{if(confirm('確定刪除？')){cards=cards.filter(x=>x.id!==id);save();closeModal();render()}}}function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(cards,null,2)],{type:'application/json'}));a.download='ai-card-manager-v021.json';a.click()}function importData(){let i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=()=>{let r=new FileReader;r.onload=()=>{try{cards=JSON.parse(r.result);save();render();alert('匯入完成')}catch{alert('檔案格式錯誤')}};r.readAsText(i.files[0])};i.click()}
-document.querySelectorAll('nav button[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});$('#add').onclick=openScanner;$('#gear').onclick=()=>{page='settings';render()};if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});render();
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 名片管家 Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root { --p: #2563eb; --bg: #f8fafc; --card: #ffffff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
+        
+        /* UI 元件 */
+        header { background: var(--card); padding: 15px; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .search { background: #f1f5f9; padding: 10px; border-radius: 10px; display: flex; align-items: center; }
+        .search input { background: none; border: none; width: 100%; margin-left: 10px; font-size: 16px; outline: none; }
+        
+        .hero { background: var(--p); color: white; margin: 15px; padding: 30px 20px; border-radius: 20px; text-align: center; border: none; width: calc(100% - 30px); }
+        .hero h2 { margin: 10px 0 5px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px; }
+        .stat { background: var(--card); padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .num { font-size: 20px; font-weight: bold; color: var(--p); }
+        
+        #list { padding: 15px; }
+        .card-item { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: none; width: 100%; text-align: left; }
+        .avatar { width: 45px; height: 45px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; flex-shrink: 0; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .card-info { flex: 1; }
+        .cn { font-weight: bold; font-size: 16px; }
+        .co { color: #64748b; font-size: 13px; }
+        
+        /* Modal & Form */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: flex-end; }
+        .modal-box { background: var(--card); width: 100%; max-height: 90vh; border-radius: 20px 20px 0 0; padding: 20px; overflow-y: auto; }
+        .field { margin-bottom: 15px; }
+        .field label { display: block; font-size: 12px; color: #64748b; margin-bottom: 5px; }
+        .field input, .field select, .field textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; }
+        
+        nav { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; border-top: 1px solid #e2e8f0; padding-bottom: env(safe-area-inset-bottom); }
+        nav button { flex: 1; padding: 15px; border: none; background: none; color: #64748b; font-size: 12px; }
+        nav button.active { color: var(--p); font-weight: bold; }
+        
+        .btn { padding: 12px; border-radius: 10px; border: none; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
+        .btn-p { background: var(--p); color: white; }
+        .btn-s { background: #e2e8f0; color: #475569; }
+        .preview { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <div class="search">🔍 <input id="q" placeholder="搜尋姓名、公司..." oninput="handleSearch(this.value)"></div>
+    </header>
+    
+    <main id="main"></main>
+
+    <nav>
+        <button onclick="setPage('home')" id="nav-home">🏠 首頁</button>
+        <button onclick="setPage('cards')" id="nav-cards">📇 名片</button>
+        <button onclick="setPage('settings')" id="nav-settings">⚙️ 設定</button>
+    </nav>
+</div>
+
+<!-- 隱藏的檔案輸入框：直接觸發原生相機 -->
+<input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
+
+<div id="modal-container"></div>
+
+<script>
+// --- 1. IndexedDB 核心邏輯 ---
+const DB_NAME = 'CardAppDB', STORE_NAME = 'cards';
+const openDB = () => new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, 3);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e.target.error);
+});
+
+async function dbOp(type, data) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, type === 'read' ? 'readonly' : 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    return new Promise(res => {
+        const req = type === 'get' ? store.get(data) : type === 'getAll' ? store.getAll() : type === 'put' ? store.put(data) : store.delete(data);
+        req.onsuccess = e => res(e.target.result);
+    });
+}
+
+// --- 2. 狀態管理 ---
+let cards = [], currentPage = 'home';
+const $ = s => document.querySelector(s);
+
+async function init() {
+    cards = await dbOp('getAll');
+    render();
+}
+
+function setPage(p) { currentPage = p; render(); }
+
+// --- 3. 渲染邏輯 ---
+function render() {
+    const main = $('#main');
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.id === `nav-${currentPage}`));
+    
+    if (currentPage === 'home') {
+        main.innerHTML = `
+            <button class="hero" onclick="$('#cam-input').click()">
+                <div style="font-size:40px">📷</div>
+                <h2>拍攝名片</h2>
+                <p>啟動 iPhone 原生相機辨識</p>
+            </button>
+            <div class="grid">
+                <div class="stat"><div class="num">${cards.length}</div><div style="font-size:12px;color:#64748b">總名片</div></div>
+                <div class="stat"><div class="num">${cards.filter(c=>c.fav).length}</div><div style="font-size:12px;color:#64748b">最愛</div></div>
+            </div>
+            <div style="padding:15px"><h3>最近新增</h3></div>
+            <div id="list">${renderList(cards.slice().reverse().slice(0,5))}</div>
+        `;
+    } else if (currentPage === 'cards') {
+        main.innerHTML = `<div style="padding:15px"><h3>我的所有名片 (${cards.length})</h3></div><div id="list">${renderList(cards)}</div>`;
+    } else {
+        main.innerHTML = `<div style="padding:20px"><h3>設定</h3><button class="btn btn-s" onclick="exportJSON()">匯出 JSON 備份</button></div>`;
+    }
+}
+
+function renderList(list) {
+    return list.map(c => `
+        <button class="card-item" onclick="showDetail('${c.id}')">
+            <div class="avatar">${c.img ? `<img src="${c.img}">` : c.name}</div>
+            <div class="card-info">
+                <div class="cn">${c.name} ${c.fav ? '⭐' : ''}</div>
+                <div class="co">${c.company || '未註明公司'}</div>
+            </div>
+            <div style="color:#cbd5e1">›</div>
+        </button>
+    `).join('') || '<p style="text-align:center;color:#94a3b8">尚無資料</p>';
+}
+
+// --- 4. 影像處理與 OCR ---
+async function handleFile(input) {
+    if (!input.files?.) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const src = e.target.result;
+        showLoading(src);
+        const worker = await Tesseract.createWorker('eng+chi_tra');
+        const { data: { text } } = await worker.recognize(src);
+        await worker.terminate();
+        const parsed = parseText(text);
+        showEditModal({ ...parsed, img: src, id: Date.now().toString(), fav: false });
+    };
+    reader.readAsDataURL(input.files);
+}
+
+function parseText(t) {
+    const lines = t.split('\n').map(s => s.trim()).filter(Boolean);
+    const full = lines.join(' ');
+    return {
+        name: lines.find(l => /^[\u4e00-\u9fff]{2,4}$/.test(l)) || '未知名',
+        company: lines.find(l => /(公司|科技|銀行|Ltd|Inc)/i.test(l)) || '',
+        phone: (full.match(/(09\d{8}|0\d{1,2}-\d{7,8})/) || ['']),
+        email: (full.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [''])
+    };
+}
+
+// --- 5. 互動功能 ---
+function showDetail(id) {
+    const c = cards.find(x => x.id === id);
+    const box = `
+        <div class="modal"><div class="modal-box">
+            <img src="${c.img}" class="preview">
+            <h2>${c.name}</h2>
+            <p>${c.company} | ${c.phone}</p>
+            <div class="grid" style="padding:0">
+                <button class="btn btn-s" onclick="location.href='tel:${c.phone}'">📞 撥打</button>
+                <button class="btn btn-s" onclick="exportVCard('${c.id}')">📇 存入通訊錄</button>
+            </div>
+            <button class="btn btn-p" onclick="showEditModal('${c.id}')">✏️ 編輯資訊</button>
+            <button class="btn btn-s" style="color:red" onclick="deleteCard('${c.id}')">🗑️ 刪除名片</button>
+            <button class="btn btn-s" onclick="$('#modal-container').innerHTML=''">關閉</button>
+        </div></div>`;
+    $('#modal-container').innerHTML = box;
+}
+
+function showEditModal(cardOrId) {
+    const c = typeof cardOrId === 'string' ? cards.find(x => x.id === cardOrId) : cardOrId;
+    $('#modal-container').innerHTML = `
+        <div class="modal"><div class="modal-box">
+            <h3>編輯名片資訊</h3>
+            <div class="field"><label>姓名</label><input id="e-name" value="${c.name}"></div>
+            <div class="field"><label>公司</label><input id="e-co" value="${c.company}"></div>
+            <div class="field"><label>電話</label><input id="e-tel" value="${c.phone}"></div>
+            <div class="field"><label>Email</label><input id="e-mail" value="${c.email}"></div>
+            <button class="btn btn-p" onclick="saveCard('${c.id}', '${c.img.replace(/'/g,"\\'")}')">💾 儲存</button>
+            <button class="btn btn-s" onclick="$('#modal-container').innerHTML=''">取消</button>
+        </div></div>`;
+}
+
+async function saveCard(id, img) {
+    const newCard = {
+        id, img,
+        name: $('#e-name').value,
+        company: $('#e-co').value,
+        phone: $('#e-tel').value,
+        email: $('#e-mail').value,
+        fav: cards.find(x=>x.id===id)?.fav || false
+    };
+    await dbOp('put', newCard);
+    cards = await dbOp('getAll');
+    $('#modal-container').innerHTML = '';
+    render();
+}
+
+async function deleteCard(id) {
+    if(!confirm('確定刪除？')) return;
+    await dbOp('delete', id);
+    cards = await dbOp('getAll');
+    $('#modal-container').innerHTML = '';
+    render();
+}
+
+function exportVCard(id) {
+    const c = cards.find(x => x.id === id);
+    const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nORG:${c.company}\nTEL:${c.phone}\nEMAIL:${c.email}\nEND:VCARD`;
+    const blob = new Blob([vcard], { type: 'text/vcard' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${c.name}.vcf`; a.click();
+}
+
+function showLoading(src) {
+    $('#modal-container').innerHTML = `<div class="modal"><div class="modal-box" style="text-align:center">
+        <img src="${src}" class="preview" style="opacity:0.5">
+        <p>AI 辨識中，請稍候...</p>
+    </div></div>`;
+}
+
+init();
+</script>
+</body>
+</html>
+```
