@@ -1,1 +1,28 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2563eb"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="AI名片管家"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.svg"><link rel="stylesheet" href="styles.css"><title>AI 名片管家 V0.2.1</title></head><body><div class="app"><header><div><b>AI 名片管家</b><small>V0.2.1｜拍照 → OCR → 歸檔</small></div><button id="gear">⚙️</button></header><main id="main"></main><nav><button data-page="home">⌂<small>首頁</small></button><button data-page="cards">▣<small>名片</small></button><button id="add">＋</button><button data-page="cats">🏷️<small>分類</small></button><button data-page="settings">⚙️<small>設定</small></button></nav></div><div id="modal"></div><script src="app.js"></script></body></html>
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI 名片管家 Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div id="main"></div>
+    <div id="modal"></div>
+    <nav>
+        <button data-page="home" class="active">🏠 首頁</button>
+        <button data-page="cards">📇 名片庫</button>
+    </nav>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
+```
