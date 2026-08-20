@@ -1,28 +1,34 @@
-```html
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 名片管家 Pro</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AI名片管家">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<title>AI 名片管家 V0.2</title>
 </head>
 <body>
-    <div id="main"></div>
-    <div id="modal"></div>
-    <nav>
-        <button data-page="home" class="active">🏠 首頁</button>
-        <button data-page="cards">📇 名片庫</button>
-    </nav>
-    <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
+<div id="app">
+<header class="topbar">
+  <div><div class="brand">AI 名片管家</div><div class="tagline">拍一張，AI 幫你整理</div></div>
+  <button class="icon-btn" id="settingsBtn">⚙️</button>
+</header>
+<main id="screen"></main>
+<nav class="tabbar">
+  <button data-tab="home" class="tab active">⌂<span>首頁</span></button>
+  <button data-tab="cards" class="tab">▣<span>名片</span></button>
+  <button id="addBtn" class="add-tab">＋</button>
+  <button data-tab="categories" class="tab">🏷️<span>分類</span></button>
+  <button data-tab="settings" class="tab">⚙️<span>設定</span></button>
+</nav>
+</div>
+<div id="modalRoot"></div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
-```
