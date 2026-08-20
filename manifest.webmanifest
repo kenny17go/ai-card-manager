@@ -1,1 +1,17 @@
+```json
+{
+  "name": "AI 名片管家 Pro",
+  "short_name": "名片管家",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+```
+
+
 {"name":"AI 名片管家","short_name":"名片管家","start_url":"./","display":"standalone","background_color":"#f5f7fb","theme_color":"#2563eb","lang":"zh-Hant","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml"}]}
